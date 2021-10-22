@@ -1,0 +1,133 @@
+version: "3.9" # optional since v1.27.0
+services:
+  spark:
+    image: docker.io/bitnami/spark:3
+    profiles:
+      - current
+    container_name: spark
+    hostname: spark
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - "8080:8080"
+      - "4040:4040"
+    volumes:
+      - ./DockerData/spark:/data
+  spark-worker-1:
+    image: docker.io/bitnami/spark:3
+    profiles:
+      - current
+    container_name: spark_worker1
+    hostname: spark_worker1
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    volumes:
+      - ./DockerData/spark:/data
+  spark-worker-2:
+    image: docker.io/bitnami/spark:3
+    profiles:
+      - current
+    container_name: spark_worker2
+    hostname: spark_worker2
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=4G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    volumes:
+      - ./DockerData/spark:/data
+
+  zookeeper:
+    image: docker.io/bitnami/zookeeper:3.7
+    profiles:
+      - current
+    container_name: zookeeper
+    hostname: zookeeper
+    user: root
+    ports:
+      - "2181:2181"
+    volumes:
+      - "./DockerData/zookeeper:/bitnami"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    image: docker.io/bitnami/kafka:latest
+    profiles:
+      - current
+    container_name: kafka
+    hostname: kafka
+    user: root
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    volumes:
+      - "./DockerData/kafka:/bitnami"
+      - "./kafka:/src"
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
+      - KAFKA_INTER_BROKER_LISTENER_NAME=CLIENT
+    depends_on:
+      - zookeeper
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    profiles:
+      - current
+    container_name: kafka-ui
+    ports:
+      - "8088:8080"
+    restart: always
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
+
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    hostname: portainer
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+
+  pyspark:
+    build:
+      dockerfile: Dockerfile
+      context: ./pyspark/
+    # image: jupyter/pyspark-notebook 
+    container_name: pyspark 
+    hostname: pyspark 
+    ports:
+      - "8888:8888"
+      # - "4040:4040"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=infa
+    volumes:
+      - ./DockerData/pyspark/src:/src
+      - ./DockerData/spark:/data
+
